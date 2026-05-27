@@ -1,0 +1,7 @@
+{
+  "name": "PANEL BRIGASUR",
+  "description": "A comprehensive CRM for security guard companies featuring dashboard analytics, guard management, real-time tracking visualization, and incident reporting.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
