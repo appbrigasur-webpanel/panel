@@ -438,15 +438,19 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ type, guards, installations }) 
             doc.rect(0, 0, 210, 45, 'F');
 
             // 1. Logo in Top Left
-            const logoPath = '/logo_tentacion.png';
-            const logoBase64 = await getImageData(logoPath);
-            doc.addImage(logoBase64, 'PNG', 14, 10, 32, 22);
+            const logoPath = '/logo_brigasur.png';
+            try {
+                const logoBase64 = await getImageData(logoPath);
+                doc.addImage(logoBase64, 'PNG', 14, 8, 32, 22);
+            } catch {
+                // Logo not available, continue without it
+            }
 
             // Brand Text below logo or side
             doc.setTextColor(17, 24, 39);
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
-            doc.text('TENTACIÓN FOOD STORE', 14, 40);
+            doc.text('BRIGASUR SEGURIDAD', 14, 40);
 
             // 2. Title and Meta Info (TOP RIGHT)
             doc.setTextColor(31, 41, 55);
@@ -544,10 +548,10 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ type, guards, installations }) 
             <div className="hidden print:flex flex-col w-full mb-8">
                 <div className="flex justify-between items-start border-b-2 border-orange-500 pb-4">
                     <div className="flex items-center gap-4">
-                        <img src="/logo_tentacion.png" alt="Logo" className="w-24 h-14 object-contain" />
+                        <img src="/logo_brigasur.png" alt="Logo" className="w-24 h-14 object-contain" />
                         <div>
-                            <h1 className="text-3xl font-black text-gray-900 leading-none">TENTACIÓN</h1>
-                            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Food Store</p>
+                            <h1 className="text-3xl font-black text-gray-900 leading-none">BRIGASUR</h1>
+                            <p className="text-sm font-bold text-gray-500 uppercase tracking-widest">Seguridad</p>
                         </div>
                     </div>
                     <div className="text-right">

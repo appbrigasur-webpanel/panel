@@ -22,6 +22,7 @@ export class InstallationsService {
             const transformed = data?.map(inst => ({
                 ...inst,
                 checkpointType: inst.checkpoint_type || 'QR',
+                requiredDailyScans: inst.required_daily_scans ?? 10,
                 isActive: inst.is_active,
                 markingsCount: Number(inst.logs_count || 0) + Number(inst.reports_count || 0) + Number(inst.alerts_count || 0)
             }));

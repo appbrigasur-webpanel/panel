@@ -132,6 +132,7 @@ const InstallationsManager: React.FC<InstallationsManagerProps> = ({ installatio
         lat: formData.lat,
         lng: formData.lng,
         checkpoint_type: formData.checkpointType || 'QR',
+        required_daily_scans: formData.requiredDailyScans ?? 10,
         is_active: formData.isActive !== undefined ? formData.isActive : true
       };
 
@@ -147,6 +148,8 @@ const InstallationsManager: React.FC<InstallationsManagerProps> = ({ installatio
         const updated = {
           ...data,
           isActive: data.is_active,
+          checkpointType: data.checkpoint_type || 'QR',
+          requiredDailyScans: data.required_daily_scans ?? 10,
           markingsCount: installations.find(i => i.id === formData.id)?.markingsCount || 0
         };
         setInstallations(prev => prev.map(inst => inst.id === formData.id ? updated : inst));
@@ -161,6 +164,8 @@ const InstallationsManager: React.FC<InstallationsManagerProps> = ({ installatio
         const newData = {
           ...data,
           isActive: data.is_active,
+          checkpointType: data.checkpoint_type || 'QR',
+          requiredDailyScans: data.required_daily_scans ?? 10,
           markingsCount: 0
         };
         setInstallations(prev => [...prev, newData]);
@@ -340,9 +345,9 @@ const InstallationsManager: React.FC<InstallationsManagerProps> = ({ installatio
                   </button>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500 font-bold uppercase tracking-wider">Total Marcaciones</span>
-                  <span className="text-gray-900 dark:text-white font-black bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-lg">
-                    {(inst as any).markingsCount || 0}
+                  <span className="text-gray-500 font-bold uppercase tracking-wider">Meta Diaria</span>
+                  <span className="text-blue-600 dark:text-blue-400 font-black bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-lg">
+                    {inst.requiredDailyScans ?? 10} marcaciones
                   </span>
                 </div>
               </div>
@@ -490,6 +495,25 @@ const InstallationsManager: React.FC<InstallationsManagerProps> = ({ installatio
                         <Nfc size={16} /> Etiqueta NFC
                       </button>
                     </div>
+                  </div>
+
+                  {/* --- Marcaciones Diarias Requeridas --- */}
+                  <div className="pt-2">
+                    <label className="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-1 tracking-widest">Marcaciones Diarias Requeridas</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-black text-sm select-none">#</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="999"
+                        required
+                        placeholder="Ej: 10"
+                        className="w-full bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-white/5 rounded-xl py-3 pl-8 pr-4 text-sm font-bold focus:ring-4 focus:ring-blue-500/10 outline-none dark:text-white"
+                        value={formData.requiredDailyScans ?? 10}
+                        onChange={e => setFormData({ ...formData, requiredDailyScans: parseInt(e.target.value) || 1 })}
+                      />
+                    </div>
+                    <p className="text-[10px] text-gray-400 font-bold mt-1 ml-1">Cantidad mínima de marcaciones que se deben realizar cada día en esta instalación.</p>
                   </div>
 
                   <div className="pt-2">
