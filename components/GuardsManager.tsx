@@ -207,6 +207,15 @@ const GuardsManager: React.FC<GuardsManagerProps> = ({ guards, setGuards, instal
     if (!formData.email) newErrors.email = 'Email requerido';
     if (!formData.os10Expiry) newErrors.os10Expiry = 'Fecha OS10 requerida';
 
+    // Validar contraseñas si se ingresó una
+    if (formData.password && formData.password.trim() !== '') {
+      if (formData.password !== confirmPassword) {
+        newErrors.password = 'Las contraseñas no coinciden';
+        setErrors(newErrors);
+        return;
+      }
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -214,43 +223,32 @@ const GuardsManager: React.FC<GuardsManagerProps> = ({ guards, setGuards, instal
 
     try {
       if (formData.id && isValidUUID(formData.id)) {
+        // EDITAR guardia existente
         const { data, error } = await GuardsService.update(formData.id, formData);
         if (error) throw new Error(error);
         if (data) {
           setGuards(prev => prev.map(g => g.id === formData.id ? { ...g, ...data } : g));
         }
 
-        // Si se ingresó una nueva contraseña y coincide, actualizarla en Supabase Auth
-        if (formData.password && formData.password.trim() !== '' && formData.email) {
-          if (formData.password !== confirmPassword) {
-            alert('⚠️ Las contraseñas no coinciden. No se actualizó el acceso.');
-            return;
-          }
+        // Si se ingresó una nueva contraseña, guardarla directamente en la BD
+        if (formData.password && formData.password.trim() !== '') {
           const { success, error: pwError } = await GuardsService.updatePassword(
             formData.id,
-            formData.email,
+            formData.email || '',
             formData.password,
             formData.fullName
           );
           if (!success) {
-            alert(`⚠️ Los datos del guardia se guardaron, pero hubo un error al actualizar la contraseña en el sistema de acceso:\n${pwError}`);
+            alert(`⚠️ Los datos del guardia se guardaron, pero hubo un error al actualizar la contraseña:\n${pwError}`);
           } else {
             alert('✅ Contraseña actualizada correctamente. El guardia puede ingresar con la nueva clave.');
           }
         }
       } else {
+        // CREAR guardia nuevo — la contraseña se incluye en el insert
         const { data, error } = await GuardsService.create(formData as Omit<Guard, 'id'>);
         if (error) throw new Error(error);
         if (data) {
-          // Al crear un guardia nuevo, también crear su usuario en Supabase Auth
-          if (formData.password && formData.email) {
-            await GuardsService.updatePassword(
-              data.id,
-              formData.email,
-              formData.password,
-              formData.fullName
-            );
-          }
           setGuards(prev => {
             const exists = prev.some(g => g.id === formData.id);
             if (exists && formData.id) {
@@ -266,6 +264,7 @@ const GuardsManager: React.FC<GuardsManagerProps> = ({ guards, setGuards, instal
       alert('Error al guardar guardia: ' + err.message);
     }
   };
+
 
   const handleRutChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatRut(e.target.value);
@@ -516,6 +515,7 @@ const GuardsManager: React.FC<GuardsManagerProps> = ({ guards, setGuards, instal
                         🔐 Al guardar con nueva clave, se actualizará el acceso en la app del guardia.
                       </p>
                     )}
+                    {errors.password && <span className="text-red-500 text-[10px] font-medium mt-1 ml-1 block">{errors.password}</span>}
                   </div>
 
                   {/* Confirmar contraseña — solo si se ingresó algo */}

@@ -1,9 +1,6 @@
 import { supabase, handleSupabaseError } from '../lib/supabase';
 import type { Guard } from '../types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
 /**
  * Servicio para gestionar guardias en Supabase
  */
@@ -85,18 +82,23 @@ export class GuardsService {
      */
     static async create(guard: Omit<Guard, 'id'>): Promise<{ data: Guard | null; error: string | null }> {
         try {
+            const insertData: any = {
+                full_name: guard.fullName,
+                rut: guard.rut,
+                phone: guard.phone,
+                email: guard.email,
+                os10_expiry: guard.os10Expiry,
+                is_active: guard.isActive,
+                assigned_installation_id: guard.assignedInstallationId || null,
+                shift: guard.shift || null,
+            };
+            // Si se proporcionó contraseña, guardarla en la tabla
+            if ((guard as any).password) {
+                insertData.password = (guard as any).password;
+            }
             const { data, error } = await supabase
                 .from('guards')
-                .insert({
-                    full_name: guard.fullName,
-                    rut: guard.rut,
-                    phone: guard.phone,
-                    email: guard.email,
-                    os10_expiry: guard.os10Expiry,
-                    is_active: guard.isActive,
-                    assigned_installation_id: guard.assignedInstallationId || null,
-                    shift: guard.shift || null,
-                })
+                .insert(insertData)
                 .select()
                 .single();
 
@@ -170,27 +172,21 @@ export class GuardsService {
     }
 
     /**
-     * Actualizar contraseña de un guardia en Supabase Auth + tabla guards
-     * Llama a la Edge Function que usa la Service Role Key para operar como admin
+     * Actualizar contraseña de un guardia directamente en la tabla guards.
+     * Los guardias acceden a la app móvil con las credenciales guardadas en la tabla guards,
+     * no a través de Supabase Auth.
      */
     static async updatePassword(guardId: string, email: string, newPassword: string, guardName?: string): Promise<{ success: boolean; error: string | null }> {
         try {
-            const response = await fetch(
-                `${SUPABASE_URL}/functions/v1/update-guard-password`,
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': SUPABASE_ANON_KEY,
-                    },
-                    body: JSON.stringify({ email, newPassword, guardId, guardName }),
-                }
-            );
+            // Actualizar contraseña directamente en la tabla guards
+            const { error } = await supabase
+                .from('guards')
+                .update({ password: newPassword })
+                .eq('id', guardId);
 
-            const result = await response.json();
-
-            if (!response.ok || result.error) {
-                return { success: false, error: result.error || 'Error al actualizar contraseña' };
+            if (error) {
+                console.error('Error updating guard password in DB:', error);
+                return { success: false, error: handleSupabaseError(error) };
             }
 
             return { success: true, error: null };
