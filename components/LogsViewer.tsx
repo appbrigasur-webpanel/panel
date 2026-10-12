@@ -95,7 +95,7 @@ const LogsViewer: React.FC<LogsViewerProps> = ({ type, guards, installations }) 
             //    We resolve guard names by matching guard_id against the guards array.
             let combinedLogs = [...mappedLogs];
 
-            const shouldFetchReports = type === 'QR' || type === 'NFC' || type === 'ALL' || type === 'INCIDENT' || type === 'SOS';
+            const shouldFetchReports = type === 'QR' || type === 'NFC' || type === 'ALL' || type === 'INCIDENT';
 
             if (shouldFetchReports) {
                 let reportsQuery = (supabase as any)

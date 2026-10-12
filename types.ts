@@ -38,6 +38,8 @@ export interface Guard {
   };
 }
 
+export type Supervisor = Guard;
+
 export interface Installation {
   id: string;
   name: string;

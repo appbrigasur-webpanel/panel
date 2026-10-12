@@ -204,33 +204,72 @@ const SupervisorsManager: React.FC<SupervisorsManagerProps> = ({ supervisors, se
         const { data, error } = await SupervisorsService.update(formData.id, formData);
         if (error) throw new Error(error);
         if (data) {
+          try {
+            await supabase.from('profiles').update({ role: 'supervisor' }).eq('id', formData.id);
+          } catch (pErr) {
+            console.warn('No se pudo actualizar rol en profiles:', pErr);
+          }
           setSupervisors(prev => prev.map(sv => sv.id === formData.id ? { ...sv, ...data } : sv));
         }
       } else {
         // CREACIÓN DE NUEVO SUPERVISOR
-        // 1. Registrar en Supabase Auth primero (para acceso a la App)
-        const authResponse = await AuthService.register({
-          email: formData.email || '',
-          password: (formData as any).password || '',
-          full_name: formData.fullName || '',
-          role: 'Supervisor',
-          phone: formData.phone
-        });
+        // 1. Intentar registrar en Supabase Auth (para acceso oficial a la App si el trigger de BD está activo)
+        let authUserId: string | undefined = undefined;
+        try {
+          const authResponse = await AuthService.register({
+            email: formData.email || '',
+            password: (formData as any).password || '',
+            full_name: formData.fullName || '',
+            role: 'Supervisor',
+            phone: formData.phone
+          });
 
-        if (authResponse.error) {
-          throw new Error('Error registrando acceso a la App (Auth): ' + authResponse.error);
+          if (authResponse.data?.id) {
+            authUserId = authResponse.data.id;
+          } else if (authResponse.error) {
+            console.warn('Advertencia en registro Auth (continuando con creación en BD):', authResponse.error);
+          }
+        } catch (authErr) {
+          console.warn('Excepción en AuthService.register (continuando con creación en BD):', authErr);
         }
 
-        // 2. Crear registro en tabla supervisores
-        const { data, error } = await SupervisorsService.create({
+        // Si el usuario ya existía en auth/profiles, buscar su ID para vincularlo
+        if (!authUserId && formData.email) {
+          try {
+            const { data: existingProfile } = await supabase
+              .from('profiles')
+              .select('id')
+              .ilike('email', formData.email.trim().toLowerCase())
+              .maybeSingle();
+            if (existingProfile?.id) {
+              authUserId = existingProfile.id;
+            }
+          } catch (e) {
+            console.warn('Error buscando perfil existente:', e);
+          }
+        }
+
+        // 2. Crear registro en tabla supervisores (con contraseña para acceso a la app)
+        const supervisorPayload: any = {
           ...(formData as Omit<Supervisor, 'id'>),
-          id: authResponse.data.id
-        });
+          ...(authUserId ? { id: authUserId } : {})
+        };
+
+        const { data, error } = await SupervisorsService.create(supervisorPayload);
 
         if (error) {
-          // Si falla la tabla de supervisores, mostramos el error específico
           const errorMsg = error.message || (typeof error === 'object' ? JSON.stringify(error) : String(error));
           throw new Error(`Error en base de datos: ${errorMsg}`);
+        }
+
+        // 3. Asegurar que en profiles tenga el rol supervisor para la App móvil
+        const targetId = authUserId || data?.id;
+        if (targetId) {
+          try {
+            await supabase.from('profiles').update({ role: 'supervisor' }).eq('id', targetId);
+          } catch (pErr) {
+            console.warn('No se pudo actualizar rol en profiles:', pErr);
+          }
         }
 
         if (data) {
